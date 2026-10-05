@@ -1,0 +1,34 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>AAYUSH Micro-App</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Calibri,sans-serif;background:#0b1220;color:#dbe4f0;display:flex;justify-content:center}
+.ph{width:100%;max-width:420px;min-height:100vh;padding:18px}
+h1{font-size:18px;margin:0 0 2px;color:#fff}.s{font-size:12px;color:#8aa0c0;margin-bottom:14px}
+.card{background:#111b30;border:1px solid #243452;border-radius:14px;padding:14px;margin-bottom:12px}
+input{width:100%;padding:9px;border-radius:8px;border:1px solid #2c4068;background:#16233d;color:#fff;font:inherit}
+#pad{height:200px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;background:#2a3b5f;color:#fff;user-select:none;margin:12px 0}
+#pad.go{background:#1e9e5a}#pad.bad{background:#b91c1c}
+button{width:100%;padding:12px;border-radius:10px;border:0;background:#3b6fe0;color:#fff;font:inherit;font-weight:600;cursor:pointer}
+a.help{display:block;text-align:center;padding:12px;border-radius:10px;background:#7b5bc4;color:#fff;text-decoration:none;font-weight:600}
+.note{font-size:12px;color:#9fb3d1}.big{font-size:30px;font-weight:700;color:#fff}.good{color:#4ade80}.warn{color:#fbbf24}
+</style></head><body><div class="ph">
+<h1>AAYUSH Micro-App</h1><div class="s">15-second motor alertness screener · works offline · no wearable</div>
+<div class="card"><div class="note">Service ID (pseudonym)</div><input id="pid" value="J-214"></div>
+<div class="card"><div class="note" id="info">5 quick taps. When the box turns <b class="good">green</b>, tap as fast as you can.</div>
+<div id="pad" onpointerdown="tap()">Press Start</div><button id="go" onclick="start()">Start test</button></div>
+<div class="card" id="out" style="display:none"></div>
+<div class="card"><a class="help" href="tel:14416">📞 Tele-MANAS 14416 (confidential)</a><div class="note" style="margin-top:8px">Direct helpline link. No identity tracking and no local log of the call.</div></div>
+<div class="note">Your result is stored only on the bunker server and is firewalled from APAR/ACR and disciplinary files.</div></div>
+<script>
+let n=0,times=[],t0=0,timer=null,state="idle";const pad=document.getElementById("pad");
+function start(){n=0;times=[];document.getElementById("out").style.display="none";document.getElementById("go").disabled=true;next()}
+function next(){if(n>=5)return finish();state="wait";pad.className="";pad.textContent="Wait for green…";
+ timer=setTimeout(()=>{state="go";pad.className="go";pad.textContent="TAP NOW!";t0=performance.now()},500+Math.random()*1000)}
+function tap(){if(state==="wait"){clearTimeout(timer);pad.className="bad";pad.textContent="Too early! Try again";state="idle";setTimeout(next,700)}
+ else if(state==="go"){times.push(performance.now()-t0);n++;state="idle";pad.className="";pad.textContent=Math.round(times[times.length-1])+" ms";setTimeout(next,600)}}
+async function finish(){state="idle";pad.textContent="Done ✓";document.getElementById("go").disabled=false;
+ const avg=Math.round(times.reduce((a,b)=>a+b,0)/times.length),pid=document.getElementById("pid").value.trim();
+ const o=document.getElementById("out");o.style.display="block";
+ try{const r=await fetch("/api/pvt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pid,ms:avg})});const j=await r.json();if(!r.ok)throw 0;
+  o.innerHTML=`<div class="note">Average reaction time</div><div class="big">${avg} ms</div><div class="note">Fatigue index updated: <b>${j.score}</b><br>${j.score>=70?'<span class="warn">Your officer may arrange a recovery window. This is non-punitive.</span>':'<span class="good">You are within a steady range. Keep it up.</span>'}</div>`}
+ catch(e){o.innerHTML="<div class='note warn'>Could not save. Check the Service ID.</div>"}}
+</script></body></html>

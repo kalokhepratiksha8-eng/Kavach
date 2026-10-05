@@ -1,0 +1,61 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KAVACH-AAYUSH Console</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Calibri,sans-serif;background:#0b1220;color:#dbe4f0}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 20px;background:#111b30;border-bottom:1px solid #243452}
+h1{font-size:16px;margin:0;color:#fff}h1 small{display:block;font-weight:400;color:#8aa0c0;font-size:11px}
+.badge{font-size:11px;padding:4px 10px;border-radius:99px;background:#0f2e22;color:#4ade80;border:1px solid #1e6b45}
+select,button{font:inherit;padding:7px 12px;border-radius:8px;border:1px solid #2c4068;background:#16233d;color:#fff;cursor:pointer}
+button.p{background:#3b6fe0;border-color:#3b6fe0}button.g{background:#1e9e5a;border-color:#1e9e5a}button:disabled{opacity:.4;cursor:default}
+main{padding:16px 20px;display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
+.card{background:#111b30;border:1px solid #243452;border-radius:12px;padding:14px}
+.card h3{margin:0 0 10px;font-size:12px;letter-spacing:.08em;color:#8aa0c0;text-transform:uppercase}
+.kpi{font-size:32px;font-weight:700;color:#fff}.kpi small{font-size:13px;color:#8aa0c0;font-weight:400}
+.wide{grid-column:span 3}.half{grid-column:span 1.5}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:#16233d;cursor:pointer;font-size:14px}
+.row:hover{background:#1d2e50}.row.sel{outline:2px solid #3b6fe0}.hi{color:#f87171;font-weight:700}
+.bar{height:8px;border-radius:5px;background:#2a3b5f;margin:4px 0 12px}.bar i{display:block;height:100%;border-radius:5px;background:#f59e0b}
+.note{font-size:13px;color:#9fb3d1}.warn{color:#fbbf24}.good{color:#4ade80}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid #243452;text-align:left}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;grid-column:span 3}
+footer{margin:0 20px 20px;padding:10px 14px;border-radius:10px;background:#1a1530;border:1px solid #3d2f73;font-size:12px;color:#c4b5fd}
+@media(max-width:800px){main{grid-template-columns:1fr}.wide,.two{grid-column:span 1}.two{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>KAVACH-AAYUSH // CRPF Personnel Welfare &amp; Readiness<small>Ministry of Home Affairs (Police II Division) · Predictive Stress &amp; Workload Balancing</small></h1>
+<div><span class="badge">● AIR-GAPPED BUNKER MODE (ZERO-RF)</span> <span class="badge" id="enc"></span></div>
+<div>Role: <select id="role" onchange="load()"><option value="rmo">Welfare Officer / RMO</option><option value="commander">Commander / Adjutant</option></select>
+<button onclick="reset()">Reset demo</button></div></header>
+<main>
+<div class="card"><h3>Force operational readiness</h3><div class="kpi" id="ready">–</div><div class="note" id="tot"></div></div>
+<div class="card"><h3>Perimeter sentry posts</h3><div class="kpi" id="posts">–</div><div class="note" id="posts2"></div></div>
+<div class="card"><h3>Early fatigue watchlist</h3><div class="kpi" id="wl">–</div><div class="note" id="wl2"></div></div>
+<div class="two">
+<div class="card" id="left"></div>
+<div class="card" id="right"></div></div>
+</main>
+<footer>🔒 STATUTORY FIREWALL: welfare and fatigue records are permanently isolated from APAR / ACR promotion and disciplinary files. Role-based access is enforced on the server.</footer>
+<script>
+let role,sel=null;
+const $=id=>document.getElementById(id);
+async function api(p,m="GET",b){const r=await fetch(p,{method:m,headers:{"X-Role":role,"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined});
+ const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||"Error");return j}
+async function load(){role=$("role").value;sel=null;const o=await api("/api/overview");
+ $("ready").innerHTML=o.readiness+"%";$("tot").textContent=o.total+" personnel active in base";
+ $("posts").innerHTML=o.manned+" <small>/ "+o.posts+" posts</small>";
+ $("posts2").innerHTML=o.at_risk_on_duty?`<span class="warn">${o.at_risk_on_duty} fatigued sentry(ies) currently on duty</span>`:`<span class="good">✓ 100% manned, no at-risk sentry on duty</span>`;
+ $("enc").textContent=o.encrypted?"DB: SQLCipher AES-256":"DB: SQLite (demo mode)";
+ if(role==="rmo"){$("wl").textContent=o.watchlist.length;$("wl2").textContent="Pseudonymized records, score ≥ 70";
+  $("left").innerHTML="<h3>Stress &amp; fatigue watchlist (click a record)</h3>"+o.watchlist.map(w=>`<div class="row" data-p="${w.pid}" onclick="show('${w.pid}')"><span>#${w.pid}</span><span class="hi">${w.score}</span></div>`).join("");
+  $("right").innerHTML="<h3>Why was this flagged?</h3><div class='note'>Select a record to see the exact drivers (TreeSHAP).</div>"; if(o.watchlist[0])show(o.watchlist.find(w=>w.pid==="J-214")?"J-214":o.watchlist[0].pid)}
+ else{$("wl").textContent="🔒";$("wl2").textContent="Commanders see only duty changes";
+  $("left").innerHTML="<h3>Current duty roster (0000-2400)</h3><table><tr><th>Post</th><th>Shift</th><th>Sentry</th></tr>"+o.roster.map(r=>`<tr><td>Morcha ${r.post}</td><td>${r.shift}</td><td>#${r.pid}</td></tr>`).join("")+"</table>";
+  $("right").innerHTML=`<h3>Workload balancing (OR-Tools CP-SAT)</h3><div class="note">Automatically rests fatigued sentries and keeps every post manned.</div><p><button class="p" onclick="rebal()">Run automated rebalance</button></p><div id="res"></div>`}}
+async function show(p){document.querySelectorAll(".row").forEach(e=>e.classList.toggle("sel",e.dataset.p===p));
+ const d=await api("/api/person/"+p);
+ $("right").innerHTML=`<h3>Why was #${d.pid} flagged? <span class="hi">Score ${d.score}</span></h3>`+d.drivers.map(x=>`<div class="note">${x.text} <b style="float:right">${x.share}% of risk</b></div><div class="bar"><i style="width:${x.share}%"></i></div>`).join("")+`<div class="note good">Welfare action: ${d.action}</div>`}
+async function rebal(){const r=await api("/api/rebalance","POST");
+ $("res").innerHTML=`<div class="note">Solver time: <b>${r.solver_ms} ms</b> · Posts manned after change: <b class="good">${r.manned}/${r.manned}</b> (${r.total_slots}/${r.total_slots} shifts covered)</div>`+
+ (r.swaps.length?r.swaps.map(s=>`<div class="row" style="cursor:default"><span>Morcha ${s.post} · ${s.shift}</span><span>#${s.out} ➜ <b class="good">#${s.in}</b></span></div>`).join("")+`<p><button class="g" onclick="appr()">✓ Approve duty roster (Adjutant sign-off)</button></p>`:`<div class="note good">No changes needed. Roster is already safe.</div>`)}
+async function appr(){await api("/api/approve","POST");$("res").innerHTML="<p class='good'>✓ Roster approved and saved.</p>";load()}
+async function reset(){await fetch("/api/reset",{method:"POST"});load()}
+load();
+</script></body></html>
