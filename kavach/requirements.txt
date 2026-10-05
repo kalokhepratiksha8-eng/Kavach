@@ -5,5 +5,4 @@ pandas
 xgboost
 shap
 ortools
-# optional, real AES-256 database encryption (needs build tools on some systems):
-# sqlcipher3-binary
+gunicorn
